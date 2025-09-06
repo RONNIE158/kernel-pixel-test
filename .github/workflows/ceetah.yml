@@ -30,11 +30,6 @@ jobs:
         repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16
         repo sync -j$(nproc)
 
-    - name: Clone Google kernel build scripts
-      run: |
-        cd pixel-kernel
-        git clone https://android.googlesource.com/kernel/build build
-
     - name: Build Pixel 7 Pro (Cheetah) Kernel
       run: |
         cd pixel-kernel
