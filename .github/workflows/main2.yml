@@ -59,11 +59,19 @@ jobs:
         curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
         cd ../../..
 
-    # Build kernel
     - name: Build Kernel
       run: |
-        cd pixel-kernel
-        LTO=thin BUILD_CONFIG=private/gs-google/build.config.gki.aarch64 build/build.sh
+       cd pixel-kernel
+       if [ -f "private/gs-google/build.config.gki.aarch64" ]; then
+         BUILD_CONFIG=private/gs-google/build.config.gki.aarch64
+       elif [ -f "kernel/google/gs/build.config.gki.aarch64" ]; then
+         BUILD_CONFIG=kernel/google/gs/build.config.gki.aarch64
+       else
+         echo "Error: build.config.gki.aarch64 not found!"
+         exit 1
+       fi
+       LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
+       cd ..
 
     # Create boot.img
     - name: Create boot.img
