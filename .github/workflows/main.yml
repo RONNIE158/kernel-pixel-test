@@ -17,13 +17,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install cross toolchains
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bc bison build-essential curl flex git gnupg \
-          libncurses5-dev libssl-dev rsync wget xz-utils zip unzip cpio
-
+       sudo apt-get update
+       sudo apt-get install -y \
+       gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+       binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi
+   
     - name: Clone AOSP Clang Mirror (LineageOS)
       run: |
        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang-mirror
@@ -86,10 +86,11 @@ jobs:
         make O=out ARCH=arm64 ${{ env.DEVICE }}_defconfig
         PATH=$HOME/clang/bin:$PATH \
         make -j$(nproc) O=out \
-          ARCH=arm64 \
-          CC=clang \
-          CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        ARCH=arm64 \
+        CC=clang \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        LD=aarch64-linux-gnu-ld
 
     - name: Upload kernel image
       uses: actions/upload-artifact@v4
