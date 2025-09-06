@@ -39,9 +39,7 @@ jobs:
     - name: Sync Pixel Kernel
       run: |
         mkdir kernel && cd kernel
-        repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16
-        repo sync -j$(nproc)
-        cd ..
+        git clone https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16 kernel
 
     - name: Build kernel
       run: |
