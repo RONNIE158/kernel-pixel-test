@@ -1,0 +1,55 @@
+name: Pixel 7 Pro Kernel Build (Cheetah)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git-core curl wget python3 flex bison build-essential \
+          zip libncurses5-dev bc ccache libssl-dev rsync unzip
+
+    - name: Install repo tool
+      run: |
+        mkdir -p ~/bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+        echo "PATH=~/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Sync Pixel Kernel (Cheetah)
+      run: |
+        mkdir pixel-kernel && cd pixel-kernel
+        repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android14-6.1
+        repo sync -j$(nproc)
+
+    - name: Clone Google kernel build scripts
+      run: |
+        cd pixel-kernel
+        git clone https://android.googlesource.com/kernel/build build
+
+    - name: Build Pixel 7 Pro (Cheetah) Kernel
+      run: |
+        cd pixel-kernel
+        if [ -f "private/gs-google/build.config.gki.cheetah" ]; then
+          BUILD_CONFIG=private/gs-google/build.config.gki.cheetah
+        elif [ -f "kernel/google/gs/build.config.gki.cheetah" ]; then
+          BUILD_CONFIG=kernel/google/gs/build.config.gki.cheetah
+        else
+          echo "Error: build.config.gki.cheetah not found!"
+          exit 1
+        fi
+        LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
+
+    - name: Upload Kernel Image
+      uses: actions/upload-artifact@v3
+      with:
+        name: Pixel7Pro-kernel
+        path: pixel-kernel/out/android*/dist/*
