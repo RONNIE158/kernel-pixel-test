@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -49,7 +49,7 @@ jobs:
         LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
 
     - name: Upload Kernel Image
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Pixel7Pro-kernel
         path: pixel-kernel/out/android*/dist/*
