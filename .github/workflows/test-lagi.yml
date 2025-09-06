@@ -1,0 +1,57 @@
+name: test-lagi
+
+on:
+  workflow_dispatch:
+
+env:
+  DEVICE: cheetah
+  AOSP_CLANG_SYSTEM: linux-x86
+  AOSP_CLANG_BRANCH: master
+  AOSP_CLANG_VERSION: r416183b
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install cross toolchains
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git curl wget unzip bc bison build-essential flex gcc clang lld \
+          libssl-dev libncurses5-dev libncursesw5-dev python3 python3-pip \
+          gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+          binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi \
+          rsync ccache zip repo
+
+    - name: Clone AOSP Clang Mirror (LineageOS)
+      run: |
+        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang-mirror
+        mkdir -p "$HOME/clang"
+        cp -r clang-mirror/* "$HOME/clang/"
+        echo "$HOME/clang/bin" >> $GITHUB_PATH
+
+    # Clone Pixel 7/7 Pro kernel source
+    - name: Clone Pixel Kernel Source
+      run: |
+        git clone https://android.googlesource.com/kernel/google/cheetah -b android-gs-pantah-6.1-android16 kernel
+
+    - name: Build Kernel
+      run: |
+        cd kernel
+        export PATH=$HOME/clang/bin:$PATH
+        make O=out ARCH=arm64 $DEVICE_defconfig
+        make -j$(nproc) O=out ARCH=arm64 \
+          CC=clang \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          LD=ld.lld
+
+    - name: Upload Kernel Image
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-${{ env.DEVICE }}
+        path: kernel/out/arch/arm64/boot/Image.gz-dtb
