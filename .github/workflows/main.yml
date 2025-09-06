@@ -15,15 +15,10 @@ jobs:
        git config --global user.name "GitHub Actions"
        git config --global user.email "actions@github.com"
 
-    - name: Setup build environment
+    - name: Setup clang from AOSP Prebuilts
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential bc bison flex git kmod cpio libncurses5-dev libssl-dev wget curl
-        mkdir -p ~/clang
-        cd ~/clang
-        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/clang-llvm-14.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-        tar -xf clang+llvm-14.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz --strip-components=1
-        echo "PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
+       git clone https://github.com/AOSP-Prebuilts/clang-standalone -b clang-r416183b ~/clang
+       echo "PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
 
 
     - name: Patch defconfig for LXC
