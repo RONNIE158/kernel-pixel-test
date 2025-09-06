@@ -9,11 +9,11 @@ jobs:
 
     steps:
     - name: Checkout kernel common source (android13-5.15-lts)
-  run: |
-    git clone https://android.googlesource.com/kernel/common -b android13-5.15-lts kernel
-    cd kernel
-    git config --global user.name "GitHub Actions"
-    git config --global user.email "actions@github.com"
+      run: |
+       git clone https://android.googlesource.com/kernel/common -b android13-5.15-lts kernel
+       cd kernel
+       git config --global user.name "GitHub Actions"
+       git config --global user.email "actions@github.com"
 
     - name: Setup build environment
       run: |
