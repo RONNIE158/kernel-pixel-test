@@ -21,9 +21,10 @@ jobs:
         sudo apt-get install -y build-essential bc bison flex git kmod cpio libncurses5-dev libssl-dev wget curl
         mkdir -p ~/clang
         cd ~/clang
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r416183b.tar.gz
-        tar -xzf clang-r416183b.tar.gz
-        echo "export PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/clang+llvm-14.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+        tar -xf clang+llvm-14.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz --strip-components=1
+        echo "PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
+
 
     - name: Patch defconfig for LXC
       run: |
