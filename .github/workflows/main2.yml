@@ -59,19 +59,11 @@ jobs:
         curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
         cd ../../..
 
-    - name: Build Kernel
-      run: |
-       cd pixel-kernel
-       if [ -f "private/gs-google/build.config.gki.cheetah" ]; then
-         BUILD_CONFIG=private/gs-google/build.config.gki.cheetah
-       elif [ -f "private/gs-google/build.config.gki.panther" ]; then
-         BUILD_CONFIG=private/gs-google/build.config.gki.panther
-       else
-         echo "Error: Pixel 7 build config not found!"
-         exit 1
-       fi
-       LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
-       cd ..
+    - name: Build Kernel (cheetah)
+        run: |
+          cd pixel-kernel
+          LTO=thin BUILD_CONFIG=private/gs-google/build.config.gki.cheetah ./build/build.sh
+          cd ..
 
 
     # Create boot.img
