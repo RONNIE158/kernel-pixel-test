@@ -29,18 +29,12 @@ jobs:
         git clone https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16 pixel-kernel
 
 
-    - name: Build Pixel 7 Pro (Cheetah) Kernel
+    - name: Build Kernel (cheetah)
       run: |
         cd pixel-kernel
-        if [ -f "private/gs-google/build.config.gki.cheetah" ]; then
-          BUILD_CONFIG=private/gs-google/build.config.gki.cheetah
-        elif [ -f "kernel/google/gs/build.config.gki.cheetah" ]; then
-          BUILD_CONFIG=kernel/google/gs/build.config.gki.cheetah
-        else
-          echo "Error: build.config.gki.cheetah not found!"
-          exit 1
-        fi
-        LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
+        LTO=thin BUILD_CONFIG=private/gs-google/build.config.gki.cheetah ./build/build.sh
+        cd ..
+
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
