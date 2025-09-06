@@ -24,11 +24,11 @@ jobs:
           bc bison build-essential curl flex git gnupg \
           libncurses5-dev libssl-dev rsync wget xz-utils zip unzip cpio
 
-    - name: Download AOSP Clang
+    - name: Clone AOSP Clang Mirror (LineageOS)
       run: |
-       wget https://android.googlesource.com/platform/prebuilts/clang/host/${{ env.AOSP_CLANG_SYSTEM }}/+archive/refs/heads/${{ env.AOSP_CLANG_BRANCH }}/clang-${{ env.AOSP_CLANG_VERSION }}/ -O clang.tar.gz
-       mkdir -p $HOME/clang
-       tar -xzf clang.tar.gz -C $HOME/clang
+       git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang-mirror
+       mkdir -p "$HOME/clang"
+       cp -r clang-mirror/* "$HOME/clang/"
        echo "$HOME/clang/bin" >> $GITHUB_PATH
 
 
