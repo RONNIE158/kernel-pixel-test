@@ -60,10 +60,10 @@ jobs:
         cd ../../..
 
     - name: Build Kernel (cheetah)
-        run: |
-          cd pixel-kernel
-          LTO=thin BUILD_CONFIG=private/gs-google/build.config.gki.cheetah ./build/build.sh
-          cd ..
+      run: |
+        cd pixel-kernel
+        LTO=thin BUILD_CONFIG=private/gs-google/build.config.gki.cheetah ./build/build.sh
+        cd ..
 
 
     # Create boot.img
