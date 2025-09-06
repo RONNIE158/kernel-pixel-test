@@ -1,7 +1,18 @@
-name: Pixel 7/7 Pro Kernel Build with GKI-LXC Patch
+name: Pixel 7/7 Pro Kernel Build
 
 on:
   workflow_dispatch:
+    inputs:
+      enable_lxc:
+        description: "Apply GKI-LXC patches?"
+        required: true
+        default: "false"
+        type: boolean
+      enable_kernelsu:
+        description: "Enable KernelSU?"
+        required: true
+        default: "false"
+        type: boolean
 
 jobs:
   build:
@@ -27,21 +38,22 @@ jobs:
         repo sync -j$(nproc)
         cd ..
 
-    # Clone gki-lxc patch repo
+    # Apply GKI-LXC patches (optional)
     - name: Clone gki-lxc
-      run: |
-        git clone https://github.com/TapetalArray/gki-lxc
+      if: ${{ inputs.enable_lxc == true }}
+      run: git clone https://github.com/TapetalArray/gki-lxc
 
-    # Apply patches and configs from gki-lxc
     - name: Apply GKI-LXC patches
+      if: ${{ inputs.enable_lxc == true }}
       run: |
         cp ./gki-lxc/gki_defconfig ./pixel-kernel/private/gs-google/arch/arm64/configs/gki_defconfig
         cd pixel-kernel/private/gs-google
         git apply ../../../gki-lxc/*.patch || true
         cd ../../..
 
-    # Enable KernelSU
+    # Enable KernelSU (optional)
     - name: Enable KernelSU
+      if: ${{ inputs.enable_kernelsu == true }}
       run: |
         cd pixel-kernel/private/gs-google
         curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
@@ -66,7 +78,7 @@ jobs:
           --ramdisk out/ramdisk \
           --os_version 13.0.0 \
           --os_patch_level 2023-11 \
-          -o ../pixel7pro-android13-boot-lxc.img
+          -o ../pixel7pro-android13-boot.img
         cd ..
 
     # Package with AnyKernel3
@@ -75,7 +87,7 @@ jobs:
         git clone https://github.com/osm0sis/AnyKernel3.git
         cp pixel-kernel/out/*/dist/Image ./AnyKernel3/
         cd AnyKernel3
-        zip -r9 ../Pixel7Pro-android13-lxc.zip *
+        zip -r9 ../Pixel7Pro-android13.zip *
 
     # Upload artifacts
     - name: Upload Kernel
@@ -83,5 +95,5 @@ jobs:
       with:
         name: Pixel7Pro-Kernel
         path: |
-          pixel7pro-android13-boot-lxc.img
-          Pixel7Pro-android13-lxc.zip
+          pixel7pro-android13-boot.img
+          Pixel7Pro-android13.zip
