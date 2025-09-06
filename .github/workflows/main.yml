@@ -1,0 +1,74 @@
+name: Build Pixel 7 Pro Kernel with LXC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout kernel source
+      run: |
+        git clone https://android.googlesource.com/kernel/gs -b android13-5.10 kernel
+        cd kernel
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+
+    - name: Setup build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential bc bison flex git kmod cpio libncurses5-dev libssl-dev wget curl
+        mkdir -p ~/clang
+        cd ~/clang
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r416183b.tar.gz
+        tar -xzf clang-r416183b.tar.gz
+        echo "export PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Patch defconfig for LXC
+      run: |
+        cd kernel
+        DEFCONFIG=arch/arm64/configs/gs101_defconfig
+        # Tambahkan opsi LXC ke defconfig
+        echo "CONFIG_NAMESPACES=y" >> $DEFCONFIG
+        echo "CONFIG_UTS_NS=y" >> $DEFCONFIG
+        echo "CONFIG_IPC_NS=y" >> $DEFCONFIG
+        echo "CONFIG_USER_NS=y" >> $DEFCONFIG
+        echo "CONFIG_PID_NS=y" >> $DEFCONFIG
+        echo "CONFIG_NET_NS=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUPS=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_BPF=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_CPUACCT=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_SCHED=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_DEVICE=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_FREEZER=y" >> $DEFCONFIG
+        echo "CONFIG_CGROUP_PIDS=y" >> $DEFCONFIG
+        echo "CONFIG_CPUSETS=y" >> $DEFCONFIG
+        echo "CONFIG_MEMCG=y" >> $DEFCONFIG
+        echo "CONFIG_SECCOMP=y" >> $DEFCONFIG
+        echo "CONFIG_SECCOMP_FILTER=y" >> $DEFCONFIG
+        echo "CONFIG_VETH=m" >> $DEFCONFIG
+        echo "CONFIG_BRIDGE=m" >> $DEFCONFIG
+        echo "CONFIG_BRIDGE_NETFILTER=m" >> $DEFCONFIG
+        echo "CONFIG_IP_NF_IPTABLES=m" >> $DEFCONFIG
+        echo "CONFIG_IP6_NF_IPTABLES=m" >> $DEFCONFIG
+        echo "CONFIG_NETFILTER_XTABLES=y" >> $DEFCONFIG
+        echo "CONFIG_NF_NAT_IPV4=m" >> $DEFCONFIG
+        echo "CONFIG_NF_NAT_IPV6=m" >> $DEFCONFIG
+
+    - name: Build kernel
+      run: |
+        cd kernel
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export PATH=$HOME/clang/bin:$PATH
+        make O=out gs101_defconfig
+        make -j$(nproc) O=out CC=clang
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pixel7pro-kernel-lxc
+        path: |
+          kernel/out/arch/arm64/boot/Image.lz4
+          kernel/out/arch/arm64/boot/dts/google/*.dtb
