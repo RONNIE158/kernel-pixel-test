@@ -62,16 +62,17 @@ jobs:
     - name: Build Kernel
       run: |
        cd pixel-kernel
-       if [ -f "private/gs-google/build.config.gki.aarch64" ]; then
-         BUILD_CONFIG=private/gs-google/build.config.gki.aarch64
-       elif [ -f "kernel/google/gs/build.config.gki.aarch64" ]; then
-         BUILD_CONFIG=kernel/google/gs/build.config.gki.aarch64
+       if [ -f "private/gs-google/build.config.gki.cheetah" ]; then
+         BUILD_CONFIG=private/gs-google/build.config.gki.cheetah
+       elif [ -f "private/gs-google/build.config.gki.panther" ]; then
+         BUILD_CONFIG=private/gs-google/build.config.gki.panther
        else
-         echo "Error: build.config.gki.aarch64 not found!"
+         echo "Error: Pixel 7 build config not found!"
          exit 1
        fi
        LTO=thin BUILD_CONFIG=$BUILD_CONFIG ./build/build.sh
        cd ..
+
 
     # Create boot.img
     - name: Create boot.img
