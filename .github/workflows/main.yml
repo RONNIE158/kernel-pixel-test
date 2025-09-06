@@ -26,10 +26,11 @@ jobs:
 
     - name: Download AOSP Clang
       run: |
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/${{ env.AOSP_CLANG_SYSTEM }}/+archive/refs/heads/${{ env.AOSP_CLANG_BRANCH }}/clang-${{ env.AOSP_CLANG_VERSION }}.tar.gz -O clang.tar.gz
-        mkdir -p $HOME/clang
-        tar -xzf clang.tar.gz -C $HOME/clang
-        echo "$HOME/clang/bin" >> $GITHUB_PATH
+       wget https://android.googlesource.com/platform/prebuilts/clang/host/${{ env.AOSP_CLANG_SYSTEM }}/+archive/refs/heads/${{ env.AOSP_CLANG_BRANCH }}/clang-${{ env.AOSP_CLANG_VERSION }}/ -O clang.tar.gz
+       mkdir -p $HOME/clang
+       tar -xzf clang.tar.gz -C $HOME/clang
+       echo "$HOME/clang/bin" >> $GITHUB_PATH
+
 
     - name: Clone kernel source
       run: |
