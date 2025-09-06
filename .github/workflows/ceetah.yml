@@ -24,11 +24,10 @@ jobs:
         chmod a+x ~/bin/repo
         echo "PATH=~/bin:$PATH" >> $GITHUB_ENV
 
-    - name: Sync Pixel Kernel (Pantah)
+    - name: Sync Pixel Kernel
       run: |
-        mkdir pixel-kernel && cd pixel-kernel
-        repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16
-        repo sync -j$(nproc)
+        git clone https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16 pixel-kernel
+
 
     - name: Build Pixel 7 Pro (Cheetah) Kernel
       run: |
