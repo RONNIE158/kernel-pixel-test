@@ -1,70 +1,97 @@
-name: Build Pixel 7 Pro Kernel with LXC
+name: build
 
 on:
   workflow_dispatch:
+
+env:
+  DEVICE: cheetah
+  AOSP_CLANG_SYSTEM: linux-x86
+  AOSP_CLANG_BRANCH: master
+  AOSP_CLANG_VERSION: r416183b
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout kernel common source (android13-5.15-lts)
-      run: |
-       git clone https://android.googlesource.com/kernel/common -b android13-5.15-lts kernel
-       cd kernel
-       git config --global user.name "GitHub Actions"
-       git config --global user.email "actions@github.com"
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    - name: Setup clang from AOSP Prebuilts
+    - name: Install dependencies
       run: |
-       git clone https://github.com/AOSP-Prebuilts/clang-standalone -b clang-r416183b ~/clang
-       echo "PATH=$HOME/clang/bin:$PATH" >> $GITHUB_ENV
+        sudo apt-get update
+        sudo apt-get install -y \
+          bc bison build-essential curl flex git gnupg \
+          libncurses5-dev libssl-dev rsync wget xz-utils zip unzip cpio
 
-
-    - name: Patch defconfig for LXC
+    - name: Download AOSP Clang
       run: |
-        cd kernel
-        DEFCONFIG=arch/arm64/configs/gs101_defconfig
-        # Tambahkan opsi LXC ke defconfig
-        echo "CONFIG_NAMESPACES=y" >> $DEFCONFIG
-        echo "CONFIG_UTS_NS=y" >> $DEFCONFIG
-        echo "CONFIG_IPC_NS=y" >> $DEFCONFIG
-        echo "CONFIG_USER_NS=y" >> $DEFCONFIG
-        echo "CONFIG_PID_NS=y" >> $DEFCONFIG
-        echo "CONFIG_NET_NS=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUPS=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_BPF=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_CPUACCT=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_SCHED=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_DEVICE=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_FREEZER=y" >> $DEFCONFIG
-        echo "CONFIG_CGROUP_PIDS=y" >> $DEFCONFIG
-        echo "CONFIG_CPUSETS=y" >> $DEFCONFIG
-        echo "CONFIG_MEMCG=y" >> $DEFCONFIG
-        echo "CONFIG_SECCOMP=y" >> $DEFCONFIG
-        echo "CONFIG_SECCOMP_FILTER=y" >> $DEFCONFIG
-        echo "CONFIG_VETH=m" >> $DEFCONFIG
-        echo "CONFIG_BRIDGE=m" >> $DEFCONFIG
-        echo "CONFIG_BRIDGE_NETFILTER=m" >> $DEFCONFIG
-        echo "CONFIG_IP_NF_IPTABLES=m" >> $DEFCONFIG
-        echo "CONFIG_IP6_NF_IPTABLES=m" >> $DEFCONFIG
-        echo "CONFIG_NETFILTER_XTABLES=y" >> $DEFCONFIG
-        echo "CONFIG_NF_NAT_IPV4=m" >> $DEFCONFIG
-        echo "CONFIG_NF_NAT_IPV6=m" >> $DEFCONFIG
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/${{ env.AOSP_CLANG_SYSTEM }}/+archive/refs/heads/${{ env.AOSP_CLANG_BRANCH }}/clang-${{ env.AOSP_CLANG_VERSION }}.tar.gz -O clang.tar.gz
+        mkdir -p $HOME/clang
+        tar -xzf clang.tar.gz -C $HOME/clang
+        echo "$HOME/clang/bin" >> $GITHUB_PATH
+
+    - name: Clone kernel source
+      run: |
+        git clone https://android.googlesource.com/kernel/common -b android13-5.15 kernel
+
+    - name: Add LXC & Docker configs
+      run: |
+        cat >> kernel/arch/arm64/configs/${{ env.DEVICE }}_defconfig <<'EOF'
+        # LXC & Docker support
+        CONFIG_NAMESPACES=y
+        CONFIG_UTS_NS=y
+        CONFIG_IPC_NS=y
+        CONFIG_PID_NS=y
+        CONFIG_NET_NS=y
+        CONFIG_USER_NS=y
+        CONFIG_CGROUPS=y
+        CONFIG_CGROUP_FREEZER=y
+        CONFIG_CGROUP_DEVICE=y
+        CONFIG_CGROUP_PIDS=y
+        CONFIG_CGROUP_CPUACCT=y
+        CONFIG_CGROUP_SCHED=y
+        CONFIG_CPUSETS=y
+        CONFIG_MEMCG=y
+        CONFIG_BLK_CGROUP=y
+        CONFIG_CGROUP_BPF=y
+        CONFIG_BPF_SYSCALL=y
+        CONFIG_BPF_JIT=y
+        CONFIG_SECCOMP=y
+        CONFIG_SECCOMP_FILTER=y
+        CONFIG_KEYS=y
+        CONFIG_VETH=y
+        CONFIG_BRIDGE=y
+        CONFIG_BRIDGE_NETFILTER=y
+        CONFIG_IP_NF_FILTER=y
+        CONFIG_IP_NF_TARGET_MASQUERADE=y
+        CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+        CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y
+        CONFIG_NETFILTER_XT_MATCH_IPVS=y
+        CONFIG_IP_NF_IPTABLES=y
+        CONFIG_IP_NF_NAT=y
+        CONFIG_IP_NF_TARGET_REDIRECT=y
+        CONFIG_OVERLAY_FS=y
+        CONFIG_EXT4_FS=y
+        CONFIG_EXT4_FS_POSIX_ACL=y
+        CONFIG_BTRFS_FS=y
+        CONFIG_DM_THIN_PROVISIONING=y
+        CONFIG_CGROUP_HUGETLB=y
+        EOF
 
     - name: Build kernel
       run: |
         cd kernel
-        export ARCH=arm64
-        export SUBARCH=arm64
-        export PATH=$HOME/clang/bin:$PATH
-        make O=out gs101_defconfig
-        make -j$(nproc) O=out CC=clang
+        make O=out ARCH=arm64 ${{ env.DEVICE }}_defconfig
+        PATH=$HOME/clang/bin:$PATH \
+        make -j$(nproc) O=out \
+          ARCH=arm64 \
+          CC=clang \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
-    - name: Upload artifacts
+    - name: Upload kernel image
       uses: actions/upload-artifact@v4
       with:
-        name: pixel7pro-kernel-lxc
-        path: |
-          kernel/out/arch/arm64/boot/Image.lz4
-          kernel/out/arch/arm64/boot/dts/google/*.dtb
+        name: kernel-${{ env.DEVICE }}
+        path: kernel/out/arch/arm64/boot/Image.gz-dtb
