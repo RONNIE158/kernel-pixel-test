@@ -21,8 +21,11 @@ jobs:
       run: |
        sudo apt-get update
        sudo apt-get install -y \
-       gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
-       binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi
+        git curl wget unzip bc bison build-essential flex gcc clang lld \
+        libssl-dev libncurses5-dev libncursesw5-dev python3 python3-pip \
+        gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+        binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi \
+        rsync ccache zip repo
    
     - name: Clone AOSP Clang Mirror (LineageOS)
       run: |
@@ -32,10 +35,14 @@ jobs:
        echo "$HOME/clang/bin" >> $GITHUB_PATH
 
 
-    - name: Clone kernel source
+    # Sync Pixel 7/7 Pro kernel source
+    - name: Sync Pixel Kernel
       run: |
-        git clone https://android.googlesource.com/kernel/common -b android-gs-pantah-6.1-android16 kernel
-
+        mkdir pixel-kernel && cd pixel-kernel
+        repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android-gs-pantah-6.1-android16
+        repo sync -j$(nproc)
+        cd ..
+    
     - name: Add LXC & Docker configs
       run: |
         cat >> kernel/arch/arm64/configs/${{ env.DEVICE }}_defconfig <<'EOF'
