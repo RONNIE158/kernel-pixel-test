@@ -1,70 +1,69 @@
-name: Build Pixel 7 Pro Kernel (Android 13 - 5.10)
+name: Pixel7Pro-Android13-5.10
 
-on:
+on: 
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup build environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            bc bison build-essential curl flex g++-multilib gcc-multilib git \
-            gnupg gperf imagemagick lib32ncurses-dev libncurses5-dev \
-            libssl-dev libxml2-utils lzop pngcrush rsync schedtool \
-            squashfs-tools xsltproc zip zlib1g-dev unzip wget \
-            python3 python3-pip python-is-python3 ccache
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y git wget unzip python3 flex bison build-essential bc curl
 
-      - name: Sync Pixel 7 Pro kernel source
-        run: |
-          mkdir pixel-kernel && cd pixel-kernel
-          repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android13-5.10-c2
-          repo sync -j$(nproc)
-          cd ..
+    - name: Install repo tool
+      run: |
+        curl https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo
+        chmod a+x /usr/local/bin/repo
+        repo --version
 
-      - name: Apply LXC/Docker configs
-        run: |
-          git clone https://github.com/TapetalArray/gki-lxc
-          cp ./gki-lxc/gki_defconfig ./pixel-kernel/private/gs-google/arch/arm64/configs/gki_defconfig
-          cd pixel-kernel/private/gs-google
-          git apply ../../../gki-lxc/*.patch || true
-          cd ../../..
+    - name: Sync Pixel 7 Pro kernel source
+      run: |
+        mkdir pixel-kernel && cd pixel-kernel
+        repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -b android13-5.10-c2
+        repo sync -j$(nproc)
+        cd ..
 
-      - name: Build Kernel
-        run: |
-          cd pixel-kernel
-          BUILD_CONFIG=private/gs-google/build.config.gki.aarch64 build/build.sh
-          cd ..
+    - name: Apply patches and config (LXC/Docker)
+      run: |
+        git clone https://github.com/RONNIE158/GKI-Custom.git gki-patch
+        cp ./gki-patch/config/gki_defconfig ./pixel-kernel/common/arch/arm64/configs/gki_defconfig
+        cd ./pixel-kernel/common
+        git apply ../../gki-patch/patchs/*.patch || true
+        cd ../..
 
-      - name: Package boot.img
-        run: |
-          cd pixel-kernel
-          ./tools/mkbootimg/mkbootimg.py \
-            --header_version 4 \
-            --kernel out/android13-5.10/dist/Image.lz4 \
-            --ramdisk out/ramdisk \
-            --dtb out/android13-5.10/dist/dtb.img \
-            --os_version 13.0.0 \
-            --os_patch_level 2023-11 \
-            -o ../pixel7pro-android13-boot-lxc.img
-          cd ..
+    - name: Enable KernelSU
+      run: |
+        cd pixel-kernel
+        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+        cd ..
 
-      - name: Pack AnyKernel3
-        run: |
-          git clone https://github.com/osm0sis/AnyKernel3.git
-          cp ./pixel-kernel/out/android13-5.10/dist/Image.lz4 ./AnyKernel3/Image.lz4
-          cp ./pixel-kernel/out/android13-5.10/dist/dtb.img ./AnyKernel3/dtb.img
-          cd AnyKernel3
-          zip -r -q ../AnyKernel3-pixel7pro-android13-lxc.zip .
-          cd ..
+    - name: Build Kernel
+      run: |
+        cd pixel-kernel
+        LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh
+        cd ..
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Pixel7Pro-Android13-Kernel
-          path: AnyKernel3-pixel7pro-android13-lxc.zip
+    - name: Pack boot.img
+      run: |
+        cd pixel-kernel
+        wget https://dl.google.com/android/gki/gki-certified-boot-android13-5.10-2023-05_r1.zip -O ../gki-certified-boot.zip
+        unzip -q ../gki-certified-boot.zip
+        ./tools/mkbootimg/unpack_bootimg.py --boot_img ../boot-5.10.img
+        ./tools/mkbootimg/mkbootimg.py --header_version 4 \
+          --kernel out/android13-5.10/dist/Image \
+          --ramdisk out/ramdisk \
+          --os_version 13.0.0 \
+          --os_patch_level 2023-11 \
+          -o ../pixel7pro-android13-boot.img
+        cd ..
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pixel7Pro-Android13-Kernel
+        path: ./pixel7pro-android13-boot.img
