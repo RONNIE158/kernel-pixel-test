@@ -43,7 +43,10 @@ jobs:
       run: |
         cd kernel
         export PATH=$HOME/clang/bin:$PATH
-        make O=out ARCH=arm64 $DEVICE_defconfig
+        export CC=clang
+        export LD=ld.lld
+        # Pakai defconfig resmi Pixel 7/7 Pro
+        make O=out ARCH=arm64 gs-pantah_defconfig
         make -j$(nproc) O=out ARCH=arm64 \
           CC=clang \
           CROSS_COMPILE=aarch64-linux-gnu- \
@@ -54,4 +57,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: kernel-${{ env.DEVICE }}
-        path: kernel/out/arch/arm64/boot/Image.gz-dtb
+        path: kernel/out/arch/arm64/boot/Image*
